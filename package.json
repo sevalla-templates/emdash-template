@@ -1,0 +1,40 @@
+{
+  "name": "emdash-sevalla-template",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "emdash": {
+    "seed": "seed/seed.json"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "start": "node ./dist/server/entry.mjs",
+    "typecheck": "astro check",
+    "migrate": "node ./scripts/migrate.mjs"
+  },
+  "dependencies": {
+    "@astrojs/node": "^11.1.5",
+    "@astrojs/react": "^6.0.5",
+    "@aws-sdk/client-s3": "^3.1144.0",
+    "@aws-sdk/s3-request-presigner": "^3.1144.0",
+    "astro": "^7.3.2",
+    "emdash": "^1.0.1",
+    "pg": "^8.23.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "unstorage": "^1.17.5"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^24.19.0",
+    "@types/pg": "^8.23.1",
+    "typescript": "^6.0.3"
+  },
+  "description": "EmDash CMS deploy template for Sevalla: app hosting, CDN, edge caching, managed PostgreSQL and object storage",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.16.0"
+  }
+}

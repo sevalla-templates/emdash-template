@@ -1,0 +1,20 @@
+# Dependencies and build output
+node_modules/
+dist/
+.astro/
+.emdash/
+
+# Local-only state (production state lives in PostgreSQL and Object Storage)
+uploads/
+*.db
+*.db-shm
+*.db-wal
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.idea/

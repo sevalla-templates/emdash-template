@@ -1,0 +1,90 @@
+# =============================================================================
+# LOCAL DEVELOPMENT / TESTING ONLY — not used by Sevalla.
+#
+# Mirrors the Sevalla topology with throwaway services:
+#   db     PostgreSQL         ≈ Sevalla managed PostgreSQL
+#   s3     S3-compatible API  ≈ Sevalla Object Storage
+#   app    the EmDash image   ≈ Sevalla application (no volume: fully stateless)
+#
+#   docker compose up -d db s3 createbucket   # backing services for `npm run dev`
+#   docker compose up --build                 # everything, production image
+#
+# Wipe all local data with: docker compose down -v
+# =============================================================================
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: emdash
+      POSTGRES_USER: emdash
+      POSTGRES_PASSWORD: emdash
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U emdash -d emdash"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # S3-compatible object storage (RustFS speaks the same API as Sevalla
+  # Object Storage / Cloudflare R2).
+  s3:
+    image: rustfs/rustfs:latest
+    environment:
+      RUSTFS_ACCESS_KEY: s3admin
+      RUSTFS_SECRET_KEY: s3admin-secret
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "9000:9000" # S3 API + public object URLs
+      - "9001:9001" # web console
+    volumes:
+      - s3_data:/data
+
+  # One-shot: create the bucket and make it publicly readable, like a Sevalla
+  # bucket with its CDN domain enabled.
+  createbucket:
+    image: amazon/aws-cli:latest
+    depends_on:
+      - s3
+    environment:
+      AWS_ACCESS_KEY_ID: s3admin
+      AWS_SECRET_ACCESS_KEY: s3admin-secret
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        until aws --endpoint-url http://s3:9000 s3api list-buckets >/dev/null 2>&1; do sleep 1; done
+        aws --endpoint-url http://s3:9000 s3api head-bucket --bucket emdash-media 2>/dev/null \
+          || aws --endpoint-url http://s3:9000 s3api create-bucket --bucket emdash-media
+        aws --endpoint-url http://s3:9000 s3api put-bucket-policy --bucket emdash-media --policy \
+          '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":["s3:GetObject"],"Resource":["arn:aws:s3:::emdash-media/*"]}]}'
+        echo "bucket emdash-media ready"
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      createbucket:
+        condition: service_completed_successfully
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://emdash:emdash@db:5432/emdash
+      EMDASH_SITE_URL: http://localhost:8080
+      S3_ENDPOINT: http://s3:9000
+      S3_BUCKET: emdash-media
+      S3_ACCESS_KEY_ID: s3admin
+      S3_SECRET_ACCESS_KEY: s3admin-secret
+      S3_REGION: auto
+      S3_PUBLIC_URL: http://localhost:9000/emdash-media
+      # Local throwaway key (generate your own with `npx emdash secrets generate`).
+      EMDASH_ENCRYPTION_KEY: ${EMDASH_ENCRYPTION_KEY:-}
+
+volumes:
+  db_data:
+  s3_data:

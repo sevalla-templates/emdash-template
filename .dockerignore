@@ -1,0 +1,25 @@
+# Rebuilt inside the image
+node_modules
+dist
+.astro
+.emdash
+
+# Local-only state and secrets
+.env
+.env.*
+!.env.example
+*.db
+*.db-shm
+*.db-wal
+uploads
+
+# VCS, editor and agent files
+.git
+.github
+.DS_Store
+.vscode
+.cursor
+.claude
+.agents
+.mcp.json
+docker-compose.yml
