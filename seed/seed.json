@@ -16,7 +16,7 @@
 			"label": "Posts",
 			"labelSingular": "Post",
 			"urlPattern": "/posts/{slug}",
-			"supports": ["drafts", "revisions", "preview", "scheduling", "search", "seo"],
+			"supports": ["drafts", "revisions", "preview", "scheduling", "seo"],
 			"commentsEnabled": true,
 			"fields": [
 				{
@@ -49,7 +49,7 @@
 			"label": "Pages",
 			"labelSingular": "Page",
 			"urlPattern": "/pages/{slug}",
-			"supports": ["drafts", "revisions", "preview", "search", "seo"],
+			"supports": ["drafts", "revisions", "preview", "seo"],
 			"fields": [
 				{
 					"slug": "title",
