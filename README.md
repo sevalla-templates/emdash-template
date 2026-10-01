@@ -90,7 +90,9 @@ Under **Applications → your app → Environment variables** (runtime):
 ### 6. Turn on CDN and Edge Caching
 
 **Applications → your app → Networking → CDN & Edge caching → Update settings**, and enable
-both **CDN** and **Edge caching**.
+both **CDN** and **Edge caching**. The API and CLI can toggle the CDN (`sevalla apps cdn-toggle`)
+but not Edge caching, so that switch is dashboard-only. It takes a few minutes before pages start
+showing `cf-cache-status: HIT`.
 
 ### 7. Deploy and run setup
 
@@ -130,11 +132,17 @@ first request.
   into one API call, sent at most every 10 seconds. A small EmDash plugin
   ([`src/sevalla/plugin.ts`](src/sevalla/plugin.ts)) also purges when a **scheduled** post goes
   live, which happens outside any request. Sevalla also purges both caches after every deploy.
-  A purge can take a couple of minutes to reach every Cloudflare location.
+  In testing, a purge reached the nearest Cloudflare location within seconds. Sevalla documents
+  up to a few minutes for every location.
 - **Signed-in users.** EmDash runs with `toolbar: "client"`, so public HTML is identical for every
   visitor. Editors get an **Edit** pill that loads a fresh, uncached view. As a safeguard, a
   response is never marked shareable if the request carries a session cookie or the response sets
   one. The blog's comment form, for example, prints the signed-in user's name and email.
+- **Checking it.** `curl -sI https://<your-app>/ | grep -i -E 'cf-cache-status|age|cache-control'`.
+  An edge location stores a page after its first couple of requests, then answers `HIT` with a
+  growing `age`. `DYNAMIC` means the origin answered: for a page that should be cached, the
+  response wasn't stored yet or was just purged. Admin, API and signed-in responses always come
+  back `DYNAMIC` with `private, no-store`.
 - **Tuning.** `EDGE_CACHE_MAX_AGE` and `EDGE_CACHE_SWR` (seconds) change the TTLs at runtime.
   `EDGE_CACHE_MAX_AGE=0` turns off page caching.
 
