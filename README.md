@@ -64,6 +64,11 @@ On the database, go to **Networking → Add internal connection**, pick the appl
 `DATABASE_URL`. The app also accepts `DB_URL`, or `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD`/`DB_NAME`,
 but `npm run migrate` and the EmDash CLI read `DATABASE_URL`.
 
+If you create the connection through the API or CLI instead, no variables are added. Set
+`DATABASE_URL` yourself:
+`postgres://<user>:<password>@<internal hostname>:5432/<database>`. The internal hostname is on
+the database's overview page.
+
 ### 5. Set environment variables
 
 Under **Applications → your app → Environment variables** (runtime):
@@ -78,7 +83,7 @@ Under **Applications → your app → Environment variables** (runtime):
 | `S3_REGION` | `auto` |
 | `S3_PUBLIC_URL` | `https://<bucket>.sevalla.storage` (the CDN domain from step 2) |
 | `SEVALLA_APP_ID` | The application's ID (shown in the app's **Settings**, or via `sevalla apps list`) |
-| `SEVALLA_API_KEY` | An API key from **Company settings → API keys** that can purge this app's cache |
+| `SEVALLA_API_KEY` | An API key from **Company settings → API keys**. Give it a single capability, `APP:UPDATE`, limited to this application. |
 
 [`.env.example`](.env.example) documents every variable, including the optional ones.
 
@@ -174,6 +179,7 @@ The dev server never caches pages; Astro's route cache only runs in production b
 ```text
 ├── astro.config.mjs          # EmDash + Sevalla wiring (db, storage, sessions, cache, proxy)
 ├── Dockerfile                # secret-free multi-stage build, Node 24, listens on $PORT
+├── server.mjs                # production entrypoint: drops spoofable X-Forwarded-Host, graceful shutdown
 ├── docker-compose.yml        # local Postgres + S3 + production image
 ├── .env.example              # every environment variable, documented
 ├── scripts/migrate.mjs       # non-interactive `emdash migrate` for a pre-deploy Job
@@ -201,8 +207,11 @@ The dev server never caches pages; Astro's route cache only runs in production b
   excerpt and body text. Language is set by `SEARCH_TS_CONFIG` (default `english`). It's fine for
   thousands of posts; beyond that, add an expression GIN index on the same `tsvector`.
 - **Sessions in PostgreSQL** (`sevalla_astro_sessions` table) instead of the local filesystem.
-- **Proxy-aware.** Astro trusts `X-Forwarded-Proto`/`-Host` from Sevalla's TLS-terminating proxy,
-  and EmDash takes the client IP from `CF-Connecting-IP` for rate limiting.
+- **Proxy-aware.** Astro takes the scheme from `X-Forwarded-Proto`, which Sevalla sets. The host
+  comes from `Host`, which Cloudflare routes on. [`server.mjs`](server.mjs) discards a
+  client-supplied `X-Forwarded-Host`, which Sevalla passes through unchanged. Otherwise one
+  request could poison edge-cached pages with links to another domain. EmDash takes the client IP
+  from `CF-Connecting-IP` for rate limiting.
 
 ## Notes
 

@@ -3,6 +3,10 @@
 		"emdash-docs": {
 			"type": "http",
 			"url": "https://docs.emdashcms.com/mcp"
+		},
+		"sevalla": {
+			"type": "http",
+			"url": "https://mcp.sevalla.com/mcp"
 		}
 	}
 }
